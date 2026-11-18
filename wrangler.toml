@@ -1,0 +1,10 @@
+name = "clientes-por-olt"
+compatibility_date = "2024-09-01"
+pages_build_output_dir = "public"
+
+# Conecta las funciones de /functions con la base D1 de ESTA app.
+# Pon aquí el database_id que te da: npx wrangler d1 create clientes_por_olt
+[[d1_databases]]
+binding = "DB"
+database_name = "clientes_por_olt"
+database_id = "084e05d9-6f49-47af-9384-1d948fe1eb7c"

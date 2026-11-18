@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clientes por OLT</title>
+<link rel="icon" href="favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="assets/favicon-180.png" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/vendor/tabulator.min.css" />
+</head>
+<body>
+  <div id="login_screen" class="login-screen">
+    <div class="login-box">
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="login-logo-atc" />
+      <div class="brand-mark" style="font-size:22px;">vnet</div>
+      <h2>Iniciar Sesión</h2>
+      <div class="field"><label>Correo</label><input id="login_email" type="email" autocomplete="username" /></div>
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="search-row">
+          <input id="login_password" type="password" autocomplete="current-password" />
+          <button id="login_toggle_ojo" class="btn-secondary" type="button">👁</button>
+        </div>
+      </div>
+      <button id="login_btn" class="btn-primary" type="button">Entrar</button>
+      <div id="login_msg" class="msg"></div>
+    </div>
+  </div>
+
+
+  <div id="setup_screen" class="login-screen hidden">
+    <div class="login-box">
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="login-logo-atc" />
+      <div class="brand-mark" style="font-size:22px;">vnet</div>
+      <h2>Instalación: primer administrador</h2>
+      <p class="hint">La base está vacía. Crea el primer usuario administrador. La clave de instalación es el valor de <strong>SESSION_SECRET</strong> que configuraste en Cloudflare.</p>
+      <div class="field"><label>Correo</label><input id="setup_email" type="email" /></div>
+      <div class="field"><label>Nombre</label><input id="setup_nombre" /></div>
+      <div class="field"><label>Contraseña <small>(mín. 8, con número y mayúscula)</small></label><input id="setup_password" type="password" autocomplete="new-password" /></div>
+      <div class="field"><label>Clave de instalación</label><input id="setup_clave" type="password" autocomplete="off" /></div>
+      <button id="setup_btn" class="btn-primary" type="button">Crear administrador</button>
+      <div id="setup_msg" class="msg"></div>
+    </div>
+  </div>
+
+  <div id="cambio_screen" class="login-screen hidden">
+    <div class="login-box">
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="login-logo-atc" />
+      <div class="brand-mark" style="font-size:22px;">vnet</div>
+      <h2>Crea tu contraseña</h2>
+      <p class="hint">Es tu primer ingreso. Escribe una contraseña nueva: mínimo 8 caracteres, con al menos un número y una letra mayúscula. Puedes usar cualquier carácter especial.</p>
+      <div class="field"><label>Contraseña nueva</label><input id="cambio_password" type="password" autocomplete="new-password" /></div>
+      <div class="field"><label>Confirmar contraseña</label>
+        <div class="search-row">
+          <input id="cambio_confirmar" type="password" autocomplete="new-password" />
+          <button id="cambio_toggle_ojo" class="btn-secondary" type="button">👁</button>
+        </div>
+      </div>
+      <button id="cambio_btn" class="btn-primary" type="button">Guardar y entrar</button>
+      <button id="cambio_cancelar" class="btn-secondary" type="button">Cancelar</button>
+      <div id="cambio_msg" class="msg"></div>
+    </div>
+  </div>
+
+
+  <div id="app_shell" class="hidden">
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/vnet-logo.png" alt="VNET" class="brand-logo" />
+      <span class="brand-sub">Clientes por OLT</span>
+    </div>
+    <div class="topbar-usuario">
+      <span id="topbar_usuario_nombre"></span>
+      <button id="btn_logout" class="btn-secondary" type="button">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <nav class="tabs tabs-grupos" id="nav_grupos">
+    <button class="grupo-btn active" data-grupo="informes">Informes</button>
+    <button class="grupo-btn hidden" data-grupo="administracion">Administración</button>
+  </nav>
+  <nav class="tabs tabs-sub">
+    <button class="tab-btn hidden" data-tab="informe_olt" data-grupo="informes" id="nav_informe_olt">Clientes por OLT</button>
+    <button class="tab-btn hidden" data-tab="informe_general" data-grupo="informes" id="nav_informe_general">Reporte General de Clientes</button>
+    <button class="tab-btn hidden" data-tab="clientes" data-grupo="administracion" id="nav_clientes">Repositorio de clientes</button>
+    <button class="tab-btn hidden" data-tab="admin" data-grupo="administracion" id="nav_admin">Usuarios</button>
+  </nav>
+
+  <main id="app">
+
+  <section id="tab-informe_olt" class="tab-panel full-bleed">
+    <h2>Clientes por OLT</h2>
+    <p class="hint">Lista de clientes resultante del cruce Grafana × SmartOLT: cada fila es una ONU conocida con los datos de su cliente, su ubicación en la OLT y los dos estatus (contrato en Grafana y ONU en SmartOLT). Se llena al subir archivos de SmartOLT. Contiene datos personales: solo administrador y supervisor.</p>
+    <div id="co_filtros" class="filtros-grid">
+      <div class="field"><label>Sucursal Grafana</label><select id="co_sucursal"></select></div>
+      <div class="field"><label>Estado</label><select id="co_estado"></select></div>
+      <div class="field"><label>Oficina</label><select id="co_oficina"></select></div>
+      <div class="field"><label>OLT</label><select id="co_olt"></select></div>
+      <div class="field"><label>Estatus SmartOLT</label><select id="co_estatus_olt"></select></div>
+      <div class="field"><label>Estatus Grafana</label><select id="co_estatus_grafana"></select></div>
+    </div>
+    <div class="ig-barra">
+      <button type="button" class="btn-primary" id="co_buscar">Buscar</button>
+      <button type="button" class="btn-secondary hidden" id="co_detener">Detener</button>
+      <button type="button" class="btn-secondary" id="co_xlsx" disabled>Descargar Excel</button>
+      <button type="button" class="btn-secondary" id="co_csv" disabled>Descargar CSV</button>
+      <button type="button" class="btn-secondary" id="co_actualizar" title="Pone al día los datos de estos clientes con la última base de Grafana de cada sucursal">Actualizar con Grafana</button>
+      <span class="hint" id="co_conteo"></span>
+    </div>
+    <div id="co_msg" class="msg"></div>
+    <div id="co_grid"></div>
+  </section>
+
+  <section id="tab-informe_general" class="tab-panel full-bleed">
+    <h2>Reporte General de Clientes</h2>
+    <p class="hint">Clientes que conocemos de cada OLT: los que ya se cruzaron con Grafana al subir archivos de SmartOLT. Entra a una oficina, elige una OLT y verás la lista de sus clientes.</p>
+    <div id="ig_ruta" class="ig-ruta"></div>
+    <div id="ig_msg" class="msg"></div>
+    <div id="ig_contenido"></div>
+  </section>
+
+  <section id="tab-clientes" class="tab-panel">
+    <h2>Repositorio de clientes: Grafana y SmartOLT</h2>
+    <p class="hint">Contiene datos personales (cédulas, teléfonos). Solo administrador y supervisor.</p>
+
+    <h3>1. Carga de archivos: Grafana y SmartOLT</h3>
+    <p class="hint">
+      Sube en esta misma pantalla el archivo de <strong>Grafana</strong> (Detalle de Cuentas) y/o el de <strong>SmartOLT</strong> (ONUs list). Puedes subir solo uno o los dos.
+      Si subes los dos, primero se actualiza la base de clientes y después las ONUs de SmartOLT se cruzan con esa base ya actualizada.
+    </p>
+
+    <div class="cli-dos-archivos">
+      <div class="field">
+        <label>Archivo de Grafana (.csv) — reemplaza la base de cada sucursal que trae</label>
+        <input type="file" id="cli_archivo" accept=".csv,.txt" />
+        <small>Solo entran los clientes con Estado del contrato "Activo". Si una ONU está en más de una cuenta activa se conserva la de contrato más reciente y se te avisa. Solo se escribe lo que cambió (máximo 80.000 cambios por día: si se llega al tope, al día siguiente subes el MISMO archivo y continúa). La fecha sale del nombre del archivo (UTC, se muestra en hora de Caracas).</small>
+      </div>
+      <div class="field">
+        <label>Archivo(s) de SmartOLT (.csv, "ONUs list") — puedes elegir varios a la vez</label>
+        <input type="file" id="cli_aud_archivo" accept=".csv,.txt" multiple />
+        <small>Separado por <code>;</code>. La hora del nombre del archivo viene en UTC y se muestra convertida a hora de Caracas para que la confirmes. Cada ONU se cruza con la base de todas las sucursales cargadas.</small>
+      </div>
+    </div>
+    <button id="cli_u_analizar" class="btn-secondary" type="button">1. Analizar archivos</button>
+    <div id="cli_uso_hoy" class="hint"></div>
+    <div id="cli_u_msg" class="msg"></div>
+    <div id="cli_msg_analisis" class="msg"></div>
+    <div id="cli_aud_msg_analisis" class="msg"></div>
+    <button id="cli_btn_analizar" class="hidden" type="button" tabindex="-1" aria-hidden="true"></button>
+    <button id="cli_aud_btn_analizar" class="hidden" type="button" tabindex="-1" aria-hidden="true"></button>
+
+    <div id="cli_preview" class="hidden">
+      <h4>Grafana</h4>
+      <div class="kv" style="margin: 12px 0;">
+        <div><span>Filas leídas:</span> <strong id="cli_prev_leidas">0</strong></div>
+        <div><span>Cuentas válidas:</span> <strong id="cli_prev_validas">0</strong></div>
+        <div><span>Filas descartadas:</span> <strong id="cli_prev_desc">0</strong> <small id="cli_prev_det_desc"></small></div>
+        <div><span>Clientes activos que entran:</span> <strong id="cli_prev_activos">0</strong> <small id="cli_prev_estados"></small></div>
+        <div><span>Con serial de ONU:</span> <strong id="cli_prev_serial">—</strong></div>
+        <div><span>Fecha de la base:</span> <strong id="cli_fecha_base"></strong></div>
+      </div>
+      <div id="cli_prev_malas"></div>
+      <div class="field">
+        <label>Sucursales del archivo (cuentas)</label>
+        <input id="cli_sucursal" readonly />
+        <small id="cli_aviso_sucursal"></small>
+      </div>
+      <label class="check"><input type="checkbox" id="cli_encolar" checked /> Aplicar de noche (12:00 am, hora de Caracas) — recomendado: subes el archivo una vez y la app lo aplica sola, hasta 60.000 cambios por noche.</label>
+      <button id="cli_btn_cargar" class="hidden" type="button" tabindex="-1" aria-hidden="true"></button>
+    </div>
+    <div id="cli_aud_preview" class="hidden">
+      <h4>SmartOLT</h4>
+      <div class="kv" style="margin: 12px 0;">
+        <div><span>OLT:</span> <strong id="cli_aud_olt"></strong> <small id="cli_aud_aviso_olt"></small></div>
+        <div><span>Alcance del exporte:</span> <strong id="cli_aud_filtro"></strong></div>
+        <div><span>ONUs leídas:</span> <strong id="cli_aud_onus"></strong></div>
+        <div><span>Por estado:</span> <strong id="cli_aud_estados"></strong></div>
+        <div><span>Hora en el nombre del archivo:</span> <strong id="cli_aud_utc"></strong></div>
+      </div>
+      <div class="field">
+        <label>Fecha y hora de la auditoría (hora de Caracas) — confírmala</label>
+        <input id="cli_aud_fecha" type="datetime-local" />
+      </div>
+      <div id="cli_aud_lote"></div>
+      <button id="cli_aud_btn_cargar" class="hidden" type="button" tabindex="-1" aria-hidden="true"></button>
+    </div>
+    <button id="cli_u_cargar" class="btn-primary" type="button" disabled>2. Confirmar y cargar</button>
+    <div id="cli_msg_carga" class="msg"></div>
+    <div id="cli_aud_msg_carga" class="msg"></div>
+    <div id="cli_duplicadas"></div>
+    <div id="cli_resultado"></div>
+    <div id="cli_aud_resultado"></div>
+
+    <h3>Cola nocturna de Grafana</h3>
+    <div id="cli_cola"></div>
+
+    <h3>Bases cargadas</h3>
+    <div id="cli_bases"></div>
+
+    <h3>Auditorías cargadas</h3>
+    <div id="cli_auditorias"></div>
+
+  </section>
+
+  <section id="tab-admin" class="tab-panel">
+    <div id="adm_sub_usuarios" class="adm-sub">
+    <h2>Administración de Usuarios</h2>
+
+    <div class="grid-3">
+      <div class="field">
+        <label>Correo</label>
+        <input id="adm_email" placeholder="nombre@vnet.com.ve" />
+      </div>
+      <div class="field">
+        <label>Alias</label>
+        <input id="adm_nombre" placeholder="Nombre a mostrar" />
+      </div>
+      <div class="field">
+        <label>Rol</label>
+        <select id="adm_rol">
+          <option value="supervisor">supervisor</option>
+          <option value="administrador">administrador</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="adm_password" type="password" placeholder="Mínimo 6 caracteres" />
+      </div>
+    </div>
+    <button id="adm_btn_crear" class="btn-primary">+ Agregar Usuario</button>
+    <div id="adm_msg" class="msg"></div>
+
+    <table class="rows-table" id="adm_table">
+      <thead>
+        <tr><th>Correo</th><th>Alias</th><th>Rol</th><th>Activo</th><th>Contraseña actual</th><th>Nueva contraseña</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    </div>
+  </section>
+
+  </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="/vendor/tabulator.min.js"></script>
+<script src="app.js"></script>
+<script src="clientes.js"></script>
+</body>
+</html>
