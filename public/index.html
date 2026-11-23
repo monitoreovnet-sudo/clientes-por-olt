@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Clientes por OLT</title>
+<title>Registro y Monitoreo de Fallas Masivas CDA</title>
 <link rel="icon" href="favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="48x48" href="assets/favicon-48.png" />
@@ -28,23 +28,8 @@
         </div>
       </div>
       <button id="login_btn" class="btn-primary" type="button">Entrar</button>
+      <button id="login_volver" class="btn-secondary" type="button">Volver a la pizarra</button>
       <div id="login_msg" class="msg"></div>
-    </div>
-  </div>
-
-
-  <div id="setup_screen" class="login-screen hidden">
-    <div class="login-box">
-      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="login-logo-atc" />
-      <div class="brand-mark" style="font-size:22px;">vnet</div>
-      <h2>Instalación: primer administrador</h2>
-      <p class="hint">La base está vacía. Crea el primer usuario administrador. La clave de instalación es el valor de <strong>SESSION_SECRET</strong> que configuraste en Cloudflare.</p>
-      <div class="field"><label>Correo</label><input id="setup_email" type="email" /></div>
-      <div class="field"><label>Nombre</label><input id="setup_nombre" /></div>
-      <div class="field"><label>Contraseña <small>(mín. 8, con número y mayúscula)</small></label><input id="setup_password" type="password" autocomplete="new-password" /></div>
-      <div class="field"><label>Clave de instalación</label><input id="setup_clave" type="password" autocomplete="off" /></div>
-      <button id="setup_btn" class="btn-primary" type="button">Crear administrador</button>
-      <div id="setup_msg" class="msg"></div>
     </div>
   </div>
 
@@ -67,31 +52,845 @@
     </div>
   </div>
 
-
   <div id="app_shell" class="hidden">
   <header class="topbar">
     <div class="brand">
       <img src="assets/vnet-logo.png" alt="VNET" class="brand-logo" />
-      <span class="brand-sub">Clientes por OLT</span>
+      <span class="brand-sub">Registro y Monitoreo de Fallas Masivas CDA</span>
     </div>
     <div class="topbar-usuario">
       <span id="topbar_usuario_nombre"></span>
+      <span id="tv_estado" class="tv-estado hidden" role="status" aria-live="polite"></span>
       <button id="btn_logout" class="btn-secondary" type="button">Cerrar Sesión</button>
+      <button id="btn_login_publico" class="btn-primary hidden" type="button">Iniciar sesión</button>
     </div>
   </header>
 
   <nav class="tabs tabs-grupos" id="nav_grupos">
-    <button class="grupo-btn active" data-grupo="informes">Informes</button>
+    <button class="grupo-btn active" data-grupo="gestion">Gestión de Tickets</button>
+    <button class="grupo-btn" data-grupo="informes">Informes</button>
     <button class="grupo-btn hidden" data-grupo="administracion">Administración</button>
   </nav>
   <nav class="tabs tabs-sub">
-    <button class="tab-btn hidden" data-tab="informe_olt" data-grupo="informes" id="nav_informe_olt">Clientes por OLT</button>
+    <button class="tab-btn active" data-tab="crear" data-grupo="gestion">Crear Ticket</button>
+    <button class="tab-btn" data-tab="modificar" data-grupo="gestion">Editar Ticket</button>
+    <button class="tab-btn" data-tab="pizarra" data-grupo="informes">Pizarra de Monitoreo</button>
+    <button class="tab-btn" data-tab="reporte" data-grupo="informes">Reporte Diario</button>
+    <button class="tab-btn" data-tab="ciclo" data-grupo="informes">Ciclo 2026</button>
+    <button class="tab-btn hidden" data-tab="informe_clientes" data-grupo="informes" id="nav_informe_clientes">Clientes Afectados</button>
     <button class="tab-btn hidden" data-tab="informe_general" data-grupo="informes" id="nav_informe_general">Reporte General de Clientes</button>
+    <button class="tab-btn hidden" data-tab="informe_olt" data-grupo="informes" id="nav_informe_olt">Clientes por OLT</button>
+    <button class="tab-btn hidden" data-tab="admin" data-grupo="administracion" id="nav_admin">Usuarios y catálogos</button>
+    <button class="tab-btn" data-tab="consultar" data-grupo="administracion">Consultar / Log</button>
+    <button class="tab-btn hidden" data-tab="repositorio" data-grupo="administracion" id="nav_repositorio">Repositorio de tickets</button>
     <button class="tab-btn hidden" data-tab="clientes" data-grupo="administracion" id="nav_clientes">Repositorio de clientes</button>
-    <button class="tab-btn hidden" data-tab="admin" data-grupo="administracion" id="nav_admin">Usuarios</button>
   </nav>
 
   <main id="app">
+
+  <!-- ===================== CREAR TICKET ===================== -->
+  <section id="tab-crear" class="tab-panel active">
+    <h2>Crear Ticket</h2>
+    <div class="grid-2">
+      <div class="field">
+        <label>Ticket CMR-COR <small>(solo números)</small></label>
+        <input id="c_ticket_cmr" placeholder="Ej: 123456" inputmode="numeric" maxlength="20" />
+      </div>
+      <div class="field campo-info">
+        <label>Ticket de Incidencia previa <small>(solo números)</small></label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">El ticket que causó esta falla.</span></span>
+        <input id="c_tickets_vinculados" placeholder="Ej: 123456" inputmode="numeric" maxlength="20" />
+      </div>
+      <div class="fechas-trio">
+        <div class="field campo-info"><label>Fecha de Apertura del CMR *</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">La hora de apertura en GLPI</span></span>
+          <input id="c_fecha_cmr" type="datetime-local" />
+        </div>
+        <input id="c_fecha_cda" type="hidden" />
+        <div class="field campo-info"><label>Fecha de la Falla *</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">El momento en que se detectó la existencia de la falla</span></span>
+          <input id="c_fecha_falla" type="datetime-local" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Estado del Ticket</label>
+        <select id="c_estado_ticket"></select>
+      </div>
+      <div class="field">
+        <label>Unidad Resolutoria</label>
+        <select id="c_unidad_resolutoria"></select>
+      </div>
+      <div id="c_resol_block" class="hidden" style="grid-column: 1 / -1;">
+        <div class="grid-2" id="c_fechas"></div>
+      </div>
+      <div class="field">
+        <label>Categoría de la Afectación</label>
+        <select id="c_categoria"></select>
+      </div>
+      <div class="field">
+        <label>Afectación</label>
+        <select id="c_afectacion"></select>
+      </div>
+      <div class="field">
+        <label>Comentario</label>
+        <details id="c_comentario_multi" class="multi-cat"><summary>Seleccione:</summary><div class="multi-lista"></div></details>
+        <input id="c_comentario_libre" class="hidden" list="c_comentario_datalist" maxlength="300" placeholder="Escriba o seleccione el comentario" autocomplete="off" />
+        <datalist id="c_comentario_datalist"></datalist>
+        <input type="hidden" id="c_comentario" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Describa brevemente</label>
+      <textarea id="c_descripcion" rows="2" placeholder="Explique..."></textarea>
+    </div>
+
+    <hr />
+    <div id="ubicacion_tipo_block" class="hidden">
+      <div class="field" style="max-width:420px;">
+        <label>Tipo de ubicación</label>
+        <select id="c_ubicacion_tipo">
+          <option value="">Seleccione:</option>
+          <option value="NO_APLICA">LÓGICO</option>
+          <option value="ENLACE">ENLACE</option>
+          <option value="TRAMO">TRAMO</option>
+          <option value="TRONCAL">TRONCAL</option>
+          <option value="OFICINA">OFICINA</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="enlace_section" class="hidden">
+      <h3 id="enlace_titulo">Enlace afectado</h3>
+      <p class="hint">Agrega cada OLT afectado y la Ubicación (oficina) donde está. Tarjeta, Puerto y Edificio se guardan como N/A.</p>
+      <datalist id="enlace_olts_datalist"></datalist>
+      <div id="enlace_container"></div>
+      <button id="btn_add_enlace_olt" class="btn-secondary" type="button">+ Agregar OLT</button>
+    </div>
+
+    <div id="oficinas_section" class="hidden">
+      <h3>Oficinas afectadas</h3>
+      <p class="hint">Agrega cada oficina donde ocurrió la falla. Dentro de cada oficina podrás registrar sus OLTs, y dentro de cada OLT sus Tarjetas y Puertos.</p>
+
+      <div class="smo-box">
+        <label for="smo_archivos">Cargar archivos de SmartOLT o el archivo ya cruzado (opcional)</label>
+        <p class="hint">Suba uno o varios CSV de "ONUs list". Se llenan solos las oficinas, OLTs, tarjetas, puertos, edificio y clientes afectados por puerto, y el detalle queda en la descripción. Si una ONU está en dos archivos se cuenta una sola vez.</p>
+        <div class="search-row">
+          <input type="file" id="smo_archivos" accept=".csv,.txt,.xlsx,.xls" multiple />
+          <button id="smo_btn" class="btn-secondary" type="button">Analizar y llenar</button>
+        </div>
+        <div id="smo_msg" class="msg"></div>
+      </div>
+
+      <div class="search-row">
+        <select id="add_oficina_select"></select>
+        <button id="btn_add_oficina" class="btn-secondary" type="button">+ Agregar Oficina</button>
+      </div>
+
+      <div id="oficinas_container"></div>
+    </div>
+
+    <div id="otros_categoria_block" class="grid-2 hidden">
+      <div class="field">
+        <label>Nro de afectados</label>
+        <input id="c_otros_nro_afectados" type="number" min="0" value="0" />
+      </div>
+      <div class="field">
+        <label>Nro Personas que reportaron la falla</label>
+        <input id="c_otros_no_reportaron" type="number" min="0" value="0" />
+      </div>
+    </div>
+
+    <hr />
+    <button id="btn_crear_ticket" class="btn-primary">Crear Ticket</button>
+    <div id="crear_msg" class="msg"></div>
+  </section>
+
+  <!-- ===================== MODIFICAR / CERRAR TICKET (UNIFICADA) ===================== -->
+  <section id="tab-modificar" class="tab-panel">
+    <h2>Editar Ticket</h2>
+
+    <!-- Paso 1: qué se quiere hacer (la pantalla solo muestra esto hasta elegir) -->
+    <div class="field mc-paso1">
+      <label for="mc_accion">¿Qué deseas hacer?</label>
+      <select id="mc_accion">
+        <option value="">Seleccione:</option>
+        <option value="SOLUCION">Solución / Cierre de Ticket</option>
+        <option value="CAMPO">Cambio de campo</option>
+      </select>
+    </div>
+
+    <!-- Paso 2: número de ticket; al confirmar se cuentan sus registros y, si hay más de uno, se elige masivo o puntual -->
+    <div id="mc_paso2" class="hidden">
+      <div class="grid-2">
+        <div class="field">
+          <label>Número de Ticket</label>
+          <input id="mc_ticket" inputmode="numeric" placeholder="Ingrese el número de ticket" />
+        </div>
+        <div class="field field-btn">
+          <div class="search-row">
+            <button id="mc_btn_buscar" class="btn-primary" type="button">Buscar ticket</button>
+          </div>
+        </div>
+      </div>
+      <div id="mc_msg_busqueda" class="msg"></div>
+      <div id="mc_alcance" class="hidden">
+        <p class="hint" id="mc_alcance_hint"></p>
+        <div class="search-row">
+          <button id="mc_btn_masivo" class="btn-secondary" type="button">CAMBIO MASIVO</button>
+          <button id="mc_btn_puertos" class="btn-secondary" type="button">CAMBIO PUNTUAL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicadores del ticket (solo en "Cambio de Campo") -->
+    <div id="mc_cards" class="mc-cards hidden">
+      <div class="mc-card"><span class="mc-card-titulo">Fecha de apertura de CMR</span><span class="mc-card-valor" id="mc_card_apertura_cmr">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Fecha del registro del CDA</span><span class="mc-card-valor" id="mc_card_apertura_cda">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Oficina</span><span class="mc-card-valor" id="mc_card_oficina">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Unidad resolutoria</span><span class="mc-card-valor" id="mc_card_unidad">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Estado del ticket</span><span class="mc-card-valor" id="mc_card_estado">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Cantidad de clientes afectados</span><span class="mc-card-valor" id="mc_card_afectados">-</span></div>
+      <div class="mc-card"><span class="mc-card-titulo">Cantidad de clientes que reportaron</span><span class="mc-card-valor" id="mc_card_reportaron">-</span></div>
+    </div>
+
+    <!-- Archivos de SmartOLT (solo en "Cambio de Campo" de tickets por Oficina que no estén resueltos/cerrados) -->
+    <div id="mc_smartolt" class="smo-box hidden">
+      <label for="mcs_archivos">Cargar archivos de SmartOLT o el archivo ya cruzado (opcional)</label>
+      <p class="hint">Sube uno o varios CSV de "ONUs list". Los puertos y tarjetas que falten se agregan al ticket; los que ya están se dejan como están y, si SmartOLT trae otro número de clientes afectados, podrás decidir puerto por puerto si lo actualizas.</p>
+      <div class="search-row">
+        <input type="file" id="mcs_archivos" accept=".csv,.txt,.xlsx,.xls" multiple />
+        <button id="mcs_btn" class="btn-secondary" type="button">Analizar archivos</button>
+      </div>
+      <div id="mcs_msg" class="msg"></div>
+    </div>
+
+    <!-- Escenario 1: <> Cerrado + Masivo -->
+    <div id="mc_escenario_1" class="hidden">
+      <hr />
+      <h3>Modificación Masiva</h3>
+      <p class="hint">Solo se envían los campos que llenes; los que dejes vacíos no se modifican.</p>
+      <div class="grid-2">
+        <div class="fechas-trio">
+          <div class="field campo-info"><label>Fecha Apertura CMR</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">La hora de apertura en GLPI</span></span>
+          <input id="e1_fecha_cmr" type="datetime-local" />
+          </div>
+          <div class="field campo-info"><label>Fecha de la Falla</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">El momento en que se detectó la existencia de la falla</span></span>
+          <input id="e1_fecha_falla" type="datetime-local" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Unidad Resolutoria</label>
+          <select id="e1_unidad_resolutoria"><option value="">No modificar</option></select>
+        </div>
+        <div class="field">
+          <label>Estado del Ticket</label>
+          <select id="e1_estado"><option value="">No modificar</option></select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Cantidad de clientes afectados</label>
+          <input id="e1_afectados" type="number" min="0" step="1" placeholder="No modificar" />
+        </div>
+        <div class="field">
+          <label>Cantidad de clientes que reportaron</label>
+          <input id="e1_reportaron" type="number" min="0" step="1" placeholder="No modificar" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Avance del CMR</label>
+        <textarea id="e1_avance" rows="2" placeholder="Avance..."></textarea>
+      </div>
+      <button id="e1_btn_guardar" class="btn-primary">Aplicar a Todo el Ticket</button>
+    </div>
+
+    <!-- Escenario 2: <> Cerrado + Por Puertos -->
+    <div id="mc_escenario_2" class="hidden">
+      <hr />
+      <h3>Cambio puntual</h3>
+      <p class="hint">Elige el registro (marca la casilla de su fila) y cambia solo su Oficina, OLT, Tarjeta, Puerto, Sector, Edificio, clientes afectados o clientes que reportaron.</p>
+      <table class="rows-table" id="e2_table">
+        <thead>
+          <tr><th></th><th>Oficina</th><th>OLT</th><th>Tarjeta</th><th>Puerto</th><th>Sector</th><th>Edificio</th><th>Clientes afectados</th><th>Clientes que reportaron</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="e2_btn_guardar" class="btn-primary">Guardar cambio del registro</button>
+    </div>
+
+    <!-- Escenario 4: Solución / Cierre puntual -->
+    <div id="mc_escenario_4" class="hidden">
+      <hr />
+      <h3>Solución / Cierre puntual</h3>
+      <p class="nota-fija">Nota: Los campos que no llene no se tomarán en cuenta ni modificarán la base de datos</p>
+      <div class="grid-2" id="e4_fechas"></div>
+      <p class="hint">Marca solo los registros que quieres actualizar con esas fechas. Si llenas la Fecha de Cierre del CMR los registros marcados quedan CERRADOS; si no, se marcan como RESUELTOS (los ya resueltos o cerrados no se tocan).</p>
+      <table class="rows-table" id="e4_table">
+        <thead>
+          <tr><th></th><th>Oficina</th><th>OLT</th><th>Tarjeta</th><th>Puerto</th><th>Estado</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <button id="e4_btn_guardar" class="btn-primary">Guardar en los registros marcados</button>
+    </div>
+
+    <!-- Escenario 5: Solución / Cierre masivo -->
+    <div id="mc_escenario_5" class="hidden">
+      <hr />
+      <h3>Solución / Cierre masivo</h3>
+      <p class="nota-fija">Nota: Los campos que no llene no se tomarán en cuenta ni modificarán la base de datos</p>
+      <div class="grid-2" id="e5_fechas"></div>
+      <button id="e5_btn_guardar" class="btn-primary">Guardar en todo el ticket</button>
+    </div>
+
+    <!-- ENLACE / TRAMO / TRONCAL: pantalla propia (MASIVO o POR OLT, activo o cerrado) -->
+    <div id="mc_enlace" class="hidden">
+      <hr />
+      <h3 id="me_titulo"></h3>
+      <p class="hint" id="me_hint"></p>
+      <datalist id="me_olts_datalist"></datalist>
+
+      <div id="me_masivo_block" class="hidden">
+        <p class="hint">Lo que llenes aquí se aplica a TODOS los OLT del ticket. Lo que dejes vacío no se modifica.</p>
+        <div class="grid-2">
+          <div class="field"><label>OLT</label><input id="me_m_olt" list="me_olts_datalist" placeholder="No modificar" /></div>
+          <div class="field"><label>Ubicación</label><select id="me_m_ubicacion"></select></div>
+          <div class="field"><label>Nro de afectados</label><input id="me_m_afectados" type="number" min="0" placeholder="No modificar" /></div>
+          <div class="field"><label>Nro Personas que reportaron la falla</label><input id="me_m_reportaron" type="number" min="0" placeholder="No modificar" /></div>
+        </div>
+      </div>
+
+      <div id="me_porolt_block" class="hidden">
+        <p class="hint" id="me_porolt_hint"></p>
+        <div class="table-scroll">
+          <table class="rows-table" id="me_table">
+            <thead>
+              <tr><th id="me_th_cerrar">Cerrar</th><th>OLT</th><th>Ubicación</th><th>Nro de afectados</th><th>Nro que reportaron</th><th>Cierre actual</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h4>Datos del ticket</h4>
+      <div class="grid-2">
+        <div class="field">
+          <label>Unidad Resolutoria</label>
+          <select id="me_unidad"></select>
+        </div>
+        <div class="field" id="me_estado_field">
+          <label>Estado del Ticket</label>
+          <select id="me_estado"></select>
+        </div>
+      </div>
+      <div id="me_bloque_apertura" class="fechas-trio hidden">
+        <div class="field campo-info"><label>Fecha Apertura CMR</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">La hora de apertura en GLPI</span></span><input id="me_apertura_cmr" type="datetime-local" /></div>
+        <div class="field campo-info"><label>Fecha de la Falla</label><span class="info-i" tabindex="0" role="note" aria-label="Información">i<span class="info-tip">El momento en que se detectó la existencia de la falla</span></span><input id="me_fecha_falla" type="datetime-local" /></div>
+      </div>
+      <div id="me_bloque_cierre" class="grid-2 hidden">
+        <div class="field"><label id="me_lbl_cierre_cmr">Fecha de Cierre CMR</label><input id="me_cierre_cmr" type="datetime-local" /></div>
+        <div class="field"><label id="me_lbl_cierre_cda">Fecha de Cierre CDA</label><input id="me_cierre_cda" type="datetime-local" /></div>
+      </div>
+      <div id="me_bloque_avance" class="field hidden">
+        <label>Avance del CMR</label>
+        <textarea id="me_avance" rows="2" placeholder="Avance..."></textarea>
+      </div>
+      <button id="me_btn_guardar" class="btn-primary" type="button">Guardar</button>
+    </div>
+
+    <div id="mc_msg" class="msg"></div>
+  </section>
+
+  <!-- ===================== CONSULTAR / LOG ===================== -->
+  <!-- ===================== PIZARRA DE MONITOREO ===================== -->
+  <section id="tab-pizarra" class="tab-panel dash-v2">
+    <div class="db-topbar">
+      <img src="assets/vnet-logo.png" alt="VNET" class="db-topbar-logo" />
+      <img src="assets/titulo-pizarra.png" alt="Pizarra de Monitoreo" class="db-topbar-titulo" />
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="db-topbar-logo" />
+      <button type="button" class="db-toggle-vista" id="piz_btn_vista" title="Ocultar indicadores y filtros" aria-label="Ocultar o mostrar indicadores y filtros" aria-expanded="true">▲</button>
+    </div>
+    <div class="db-estado-row">
+      <div class="db-estado-card"><div class="titulo">En Curso Asignado</div><div class="valor" id="piz_kpi_curso">-</div></div>
+      <div class="db-estado-card"><div class="titulo">En Observación</div><div class="valor" id="piz_kpi_observacion">-</div></div>
+      <div class="db-estado-card db-ventana-card" data-prefix="piz"><div class="titulo">Ventana de Mantenimiento</div><div class="valor" id="piz_kpi_ventana">-</div><div class="vent-act" id="piz_vent_act"></div><button type="button" class="vent-menu hidden" id="piz_vent_menu">Ver ventanas de mantenimiento</button></div>
+      <div class="db-estado-card"><div class="titulo">Resuelto</div><div class="valor" id="piz_kpi_resuelto">-</div></div>
+      <div class="db-acciones">
+        <button id="piz_btn_actualizar" class="db-btn-circular" type="button">Actualizar</button>
+        <div class="db-btns-exportar">
+          <button id="piz_btn_csv" class="db-btn-rect" type="button">Exportar csv</button>
+          <button id="piz_btn_excel" class="db-btn-rect" type="button">Exportar xlsx</button>
+          <button id="piz_btn_pdf" class="db-btn-rect" type="button">Exportar pdf</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="piz_filtros" class="db-filtros-grid">
+      <div class="db-filtro-item"><label>N° Ticket</label><input id="piz_ticket" inputmode="numeric" placeholder="Número" autocomplete="off" /></div>
+      <div class="db-filtro-item"><label>Estado del Ticket</label><select id="piz_estado_ticket"></select></div>
+      <div class="db-filtro-item"><label>Tipo de Falla</label><select id="piz_tipo_falla"></select></div>
+      <div class="db-filtro-item"><label>Afectación</label><select id="piz_afectacion"></select></div>
+      <div class="db-filtro-item"><label>Unidad Resolutoria</label><select id="piz_unidad"></select></div>
+      <div class="db-filtro-item"><label>Estado</label><select id="piz_region"></select></div>
+      <div class="db-filtro-item"><label>Oficina</label><select id="piz_oficina"></select></div>
+      <div class="db-filtro-item"><label>OLT</label><select id="piz_olt"></select></div>
+      <div class="db-filtro-item"><label>Semáforo</label><select id="piz_semaforo"></select></div>
+      <div class="db-filtro-item"><label>Grupo Horario</label><select id="piz_grupo_horario"></select></div>
+      <div class="db-filtro-item db-filtro-fecha-item">
+        <label>Fecha de apertura</label>
+        <div class="db-filtro-fecha">
+          <select id="piz_dia" aria-label="Día"></select>
+          <select id="piz_mes" aria-label="Mes"></select>
+          <select id="piz_anio" aria-label="Año"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="db-table-scroll">
+      <table class="rows-table db-tabla-maestra" id="piz_table">
+        <thead>
+          <tr>
+            <th>Fila</th><th>Title</th><th>Oficina</th><th>OLT</th><th>Tarjeta</th><th>Puerto</th>
+            <th>Apertura CMR</th><th>Tiempo Abierto CMR</th><th>Estado del Ticket</th><th>Afectación</th>
+            <th>N° Cltes Afectados</th><th>N° Cltes Reportaron</th><th>Unidad Resolutoria</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== REPORTE DIARIO DE FALLAS MASIVAS ===================== -->
+  <section id="tab-reporte" class="tab-panel dash-v2">
+    <div class="db-topbar">
+      <img src="assets/vnet-logo.png" alt="VNET" class="db-topbar-logo" />
+      <img src="assets/titulo-reporte.png" alt="Reporte Diario de Fallas Masivas" class="db-topbar-titulo" />
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="db-topbar-logo" />
+    </div>
+    <div class="db-estado-row">
+      <div class="db-estado-card"><div class="titulo">En Curso Asignado</div><div class="valor" id="rep_kpi_curso">-</div></div>
+      <div class="db-estado-card"><div class="titulo">En Observación</div><div class="valor" id="rep_kpi_observacion">-</div></div>
+      <div class="db-estado-card db-ventana-card" data-prefix="rep"><div class="titulo">Ventana de Mantenimiento</div><div class="valor" id="rep_kpi_ventana">-</div><div class="vent-act" id="rep_vent_act"></div><button type="button" class="vent-menu hidden" id="rep_vent_menu">Ver ventanas de mantenimiento</button></div>
+      <div class="db-estado-card"><div class="titulo">Resuelto</div><div class="valor" id="rep_kpi_resuelto">-</div></div>
+      <div class="db-estado-card"><div class="titulo">Cerrado</div><div class="valor" id="rep_kpi_cerrado">-</div></div>
+      <div class="db-acciones">
+        <button id="rep_btn_actualizar" class="db-btn-circular" type="button">Actualizar</button>
+        <div class="db-btns-exportar">
+          <button id="rep_btn_csv" class="db-btn-rect" type="button">Exportar csv</button>
+          <button id="rep_btn_excel" class="db-btn-rect" type="button">Exportar xlsx</button>
+          <button id="rep_btn_pdf" class="db-btn-rect" type="button">Exportar pdf</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="db-resumen-row">
+      <div class="db-resumen-card db-resumen-activos"><div class="titulo">Tickets Activos</div><div class="valor" id="rep_kpi_activos">-</div></div>
+      <div class="db-resumen-card db-resumen-gestionados"><div class="titulo">Tickets Gestionados</div><div class="valor" id="rep_kpi_gestionados">-</div></div>
+    </div>
+
+    <div id="rep_filtros" class="db-filtros-grid">
+      <div class="db-filtro-item"><label>N° Ticket</label><input id="rep_ticket" inputmode="numeric" placeholder="Número" autocomplete="off" /></div>
+      <div class="db-filtro-item"><label>Estado del Ticket</label><select id="rep_estado_ticket"></select></div>
+      <div class="db-filtro-item"><label>Tipo de Falla</label><select id="rep_tipo_falla"></select></div>
+      <div class="db-filtro-item"><label>Afectación</label><select id="rep_afectacion"></select></div>
+      <div class="db-filtro-item"><label>Unidad Resolutoria</label><select id="rep_unidad"></select></div>
+      <div class="db-filtro-item"><label>Estado</label><select id="rep_region"></select></div>
+      <div class="db-filtro-item"><label>Oficina</label><select id="rep_oficina"></select></div>
+      <div class="db-filtro-item"><label>OLT</label><select id="rep_olt"></select></div>
+      <div class="db-filtro-item"><label>Semáforo</label><select id="rep_semaforo"></select></div>
+      <div class="db-filtro-item"><label>Grupo Horario</label><select id="rep_grupo_horario"></select></div>
+      <div class="db-filtro-item db-filtro-fecha-item">
+        <label>Fecha de apertura</label>
+        <div class="db-filtro-fecha">
+          <select id="rep_dia" aria-label="Día"></select>
+          <select id="rep_mes" aria-label="Mes"></select>
+          <select id="rep_anio" aria-label="Año"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="rep_semaforo_bar" class="db-semaforo-wrap"></div>
+
+    <div class="db-bloque6">
+      <div class="db-col">
+        <div class="db-col-titulo">Top 5 de Afectados por Estado</div>
+        <div class="db-chart-wrap db-top5-box"><table class="db-top5-tabla" id="rep_top5_estado">
+          <thead><tr><th>Estado</th><th>N° Fallas</th><th>N° Afectados</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Fallas por Unidades Resolutorias</div>
+        <div class="db-chart-wrap"><div class="db-chart-inner"><canvas id="rep_chart_unidad"></canvas></div></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Fallas por Oficinas</div>
+        <div class="db-chart-wrap"><div class="db-chart-inner"><canvas id="rep_chart_oficina"></canvas></div></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Desglose Tickets Activos</div>
+        <div class="db-chart-wrap"><div class="db-chart-inner"><canvas id="rep_chart_desglose"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="db-table-scroll">
+      <table class="rows-table db-tabla-maestra" id="rep_table">
+        <thead>
+          <tr>
+            <th>Fila</th><th>Title</th><th>Tipo</th><th>Afectación</th><th>Unidad Resolutoria</th>
+            <th>Estado del Ticket</th><th>Apertura CMR</th><th>Grupo Horario CMR</th>
+            <th>Tiempo Abierto CMR</th><th>N° Cltes Afectados</th><th>Estado</th><th>Oficina</th><th>Avance CMR</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== CICLO 2026 (tickets gestionados) ===================== -->
+  <section id="tab-ciclo" class="tab-panel dash-v2">
+    <div class="db-topbar">
+      <img src="assets/vnet-logo.png" alt="VNET" class="db-topbar-logo" />
+      <div class="db-topbar-texto">Ciclo 2026</div>
+      <img src="assets/atc-logo.png" alt="Gerencia General de ATC" class="db-topbar-logo" />
+    </div>
+    <div class="db-estado-row">
+      <div class="db-estado-card"><div class="titulo">En Curso Asignado</div><div class="valor" id="cic_kpi_curso">-</div></div>
+      <div class="db-estado-card"><div class="titulo">En Observación</div><div class="valor" id="cic_kpi_observacion">-</div></div>
+      <div class="db-estado-card db-ventana-card" data-prefix="cic"><div class="titulo">Ventana de Mantenimiento</div><div class="valor" id="cic_kpi_ventana">-</div><div class="vent-act" id="cic_vent_act"></div><button type="button" class="vent-menu hidden" id="cic_vent_menu">Ver ventanas de mantenimiento</button></div>
+      <div class="db-estado-card"><div class="titulo">Resuelto</div><div class="valor" id="cic_kpi_resuelto">-</div></div>
+      <div class="db-estado-card"><div class="titulo">Cerrado</div><div class="valor" id="cic_kpi_cerrado">-</div></div>
+      <div class="db-acciones">
+        <button id="cic_btn_actualizar" class="db-btn-circular" type="button">Actualizar</button>
+        <div class="db-btns-exportar">
+          <button id="cic_btn_csv" class="db-btn-rect" type="button">Exportar csv</button>
+          <button id="cic_btn_excel" class="db-btn-rect" type="button">Exportar xlsx</button>
+          <button id="cic_btn_pdf" class="db-btn-rect" type="button">Exportar pdf</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="db-resumen-row">
+      <div class="db-resumen-card db-resumen-activos"><div class="titulo">Tickets Activos</div><div class="valor" id="cic_kpi_activos">-</div></div>
+      <div class="db-resumen-card db-resumen-gestionados"><div class="titulo">Tickets Gestionados</div><div class="valor" id="cic_kpi_gestionados">-</div></div>
+    </div>
+
+    <div id="cic_filtros" class="db-filtros-grid">
+      <div class="db-filtro-item"><label>N° Ticket</label><input id="cic_ticket" inputmode="numeric" placeholder="Número" autocomplete="off" /></div>
+      <div class="db-filtro-item"><label>Estado del Ticket</label><select id="cic_estado_ticket"></select></div>
+      <div class="db-filtro-item"><label>Tipo de Falla</label><select id="cic_tipo_falla"></select></div>
+      <div class="db-filtro-item"><label>Afectación</label><select id="cic_afectacion"></select></div>
+      <div class="db-filtro-item"><label>Unidad Resolutoria</label><select id="cic_unidad"></select></div>
+      <div class="db-filtro-item"><label>Estado</label><select id="cic_region"></select></div>
+      <div class="db-filtro-item"><label>Oficina</label><select id="cic_oficina"></select></div>
+      <div class="db-filtro-item"><label>OLT</label><select id="cic_olt"></select></div>
+      <div class="db-filtro-item"><label>Semáforo</label><select id="cic_semaforo"></select></div>
+      <div class="db-filtro-item"><label>Grupo Horario</label><select id="cic_grupo_horario"></select></div>
+      <div class="db-filtro-item db-filtro-fecha-item">
+        <label>Fecha de apertura</label>
+        <div class="db-filtro-fecha">
+          <select id="cic_dia" aria-label="Día"></select>
+          <select id="cic_mes" aria-label="Mes"></select>
+          <select id="cic_anio" aria-label="Año"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="cic_semaforo_bar" class="db-semaforo-wrap"></div>
+
+    <div class="db-bloque6">
+      <div class="db-col">
+        <div class="db-col-titulo">Top 5 de Afectados por Estado</div>
+        <div class="db-chart-wrap db-top5-box"><table class="db-top5-tabla" id="cic_top5_estado">
+          <thead><tr><th>Estado</th><th>N° Fallas</th><th>N° Afectados</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Fallas por Unidades Resolutorias</div>
+        <div class="db-chart-wrap"><div class="db-chart-inner"><canvas id="cic_chart_unidad"></canvas></div></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Fallas por Oficinas</div>
+        <div class="db-chart-wrap"><div class="db-chart-inner"><canvas id="cic_chart_oficina"></canvas></div></div>
+      </div>
+      <div class="db-col">
+        <div class="db-col-titulo">Top 10 de OLT Afectadas</div>
+        <div class="db-chart-wrap db-top5-box"><table class="db-top5-tabla" id="cic_top10_olt">
+          <thead><tr><th>OLT</th><th>N° Fallas</th><th>N° Afectados</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="db-table-scroll">
+      <table class="rows-table db-tabla-maestra" id="cic_table">
+        <thead>
+          <tr>
+            <th>Fila</th><th>Title</th><th>Tipo</th><th>Afectación</th><th>Unidad Resolutoria</th>
+            <th>Estado del Ticket</th><th>Apertura CMR</th><th>Grupo Horario CMR</th>
+            <th>Tiempo Abierto CMR</th><th>N° Cltes Afectados</th><th>Estado</th><th>Oficina</th><th>Avance CMR</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-consultar" class="tab-panel full-bleed">
+    <div class="cl-titulo-fila">
+      <h2>Consultar / Log</h2>
+      <div class="cl-acciones">
+        <button id="cl_btn_csv" class="btn-secondary" type="button" title="Descarga lo que muestra la tabla con los filtros aplicados">Descargar CSV</button>
+        <button id="cl_btn_xlsx" class="btn-secondary" type="button" title="Descarga lo que muestra la tabla con los filtros aplicados">Descargar XLSX</button>
+        <button id="cl_btn_eliminar" class="btn-danger hidden" type="button" disabled>Eliminar filas seleccionadas <span id="cl_sel_count"></span></button>
+      </div>
+    </div>
+
+    <div id="cl_vista_tabla">
+      <p id="cl_ayuda_sel" class="hint hidden">Al marcar una fila se marca todo el ticket. Desmarca las filas que quieras conservar, o usa Ctrl+clic para marcar solo un registro. Si quedan marcados todos los registros de un ticket se elimina el ticket completo; si no, solo los registros marcados.</p>
+      <div id="cl_filtros" class="filtros-grid">
+      <div class="field"><label>Ticket CMR-COR</label><input id="cl_ticket_cmr" inputmode="numeric" placeholder="Número" /></div>
+      <div class="field"><label>Ticket de Incidencia previa</label><input id="cl_tickets_vinculados" inputmode="numeric" placeholder="Número" /></div>
+
+      <div class="field"><label>Día Apert. CMR</label><select id="cl_dia_apertura"></select></div>
+      <div class="field"><label>Mes Apert. CMR</label><select id="cl_mes_apertura"></select></div>
+      <div class="field"><label>Año Apert. CMR</label><select id="cl_anio_apertura"></select></div>
+
+      <div class="field"><label>Día Cierre CMR</label><select id="cl_dia_cierre"></select></div>
+      <div class="field"><label>Mes Cierre CMR</label><select id="cl_mes_cierre"></select></div>
+      <div class="field"><label>Año Cierre CMR</label><select id="cl_anio_cierre"></select></div>
+
+      <div class="field"><label>Categoría de la Afectación</label><select id="cl_categoria"></select></div>
+      <div class="field"><label>Afectación</label><select id="cl_afectacion"></select></div>
+      <div class="field"><label>Grupo Horario</label><select id="cl_grupo_horario"></select></div>
+      <div class="field"><label>Semáforo</label><select id="cl_semaforo"></select></div>
+      <div class="field"><label>Estado del Ticket</label><select id="cl_estado"></select></div>
+      <div class="field"><label>Unidad Resolutoria</label><select id="cl_unidad"></select></div>
+      <div class="field"><label>Estado</label><select id="cl_region"></select></div>
+      <div class="field"><label>Oficina</label><select id="cl_oficina"></select></div>
+      <div class="field"><label>OLT</label><select id="cl_olt"></select></div>
+
+      <div class="field field-btn"><button id="cl_btn_filtrar" class="btn-primary" type="button">Filtrar</button></div>
+    </div>
+
+    <div id="cl_barra_excel" class="cl-barra-excel hidden">
+      <button id="cl_btn_editar" class="btn-primary" type="button" title="Pide tu contraseña de nuevo y activa la edición tipo Excel">Editar como cuadro de Excel</button>
+      <span id="cl_edit_controles" class="hidden">
+        <button id="cl_btn_guardar" class="btn-primary" type="button" disabled>Guardar cambios <span id="cl_cambios_n"></span></button>
+        <button id="cl_btn_descartar" class="btn-secondary" type="button" disabled>Descartar cambios</button>
+        <button id="cl_btn_salir_edicion" class="btn-secondary" type="button">Salir de la edición</button>
+      </span>
+    </div>
+    <p id="cl_ayuda_excel" class="hint hidden">Modo edición: doble clic o Enter en una celda para editarla · arrastra el puntito de la esquina de la selección para copiar hacia las celdas vecinas · Ctrl+C / Ctrl+V entre celdas · Ctrl+Z / Ctrl+Y para deshacer o rehacer. Los cambios se guardan juntos con «Guardar cambios». Las columnas en gris se calculan solas.</p>
+    <div id="cl_msg_excel" class="msg" style="white-space:pre-line"></div>
+    <div id="cl_grid"></div>
+    <p class="hint" id="cl_contador"></p>
+    </div>
+
+    <button id="q_btn_volver" class="btn-secondary hidden" type="button">← Volver a la tabla</button>
+    <div id="q_resultado" class="hidden"></div>
+  </section>
+
+  <!-- ===================== ADMINISTRACIÓN (solo administrador) ===================== -->
+  <section id="tab-admin" class="tab-panel">
+    <div class="adm-subtabs" role="tablist">
+      <button type="button" class="adm-subtab activo" data-sub="usuarios">Administración de usuarios</button>
+      <button type="button" class="adm-subtab" data-sub="catalogos">Catálogos</button>
+      <button type="button" class="adm-subtab" data-sub="reportes">Generador de reportes</button>
+    </div>
+
+    <div id="adm_sub_usuarios" class="adm-sub">
+    <h2>Administración de Usuarios</h2>
+
+    <div class="grid-3">
+      <div class="field">
+        <label>Correo</label>
+        <input id="adm_email" placeholder="nombre@vnet.com.ve" />
+      </div>
+      <div class="field">
+        <label>Alias</label>
+        <input id="adm_nombre" placeholder="Nombre a mostrar" />
+      </div>
+      <div class="field">
+        <label>Rol</label>
+        <select id="adm_rol">
+          <option value="analista">analista</option>
+          <option value="especialista">especialista</option>
+          <option value="supervisor">supervisor</option>
+          <option value="administrador">administrador</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Contraseña</label>
+        <input id="adm_password" type="password" placeholder="Mínimo 6 caracteres" />
+      </div>
+    </div>
+    <button id="adm_btn_crear" class="btn-primary">+ Agregar Usuario</button>
+    <div id="adm_msg" class="msg"></div>
+
+    <table class="rows-table" id="adm_table">
+      <thead>
+        <tr><th>Correo</th><th>Alias</th><th>Rol</th><th>Activo</th><th>Contraseña actual</th><th>Nueva contraseña</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    </div>
+
+    <div id="adm_sub_catalogos" class="adm-sub hidden">
+    <h2>Catálogos</h2>
+    <div class="field">
+      <label>Catálogo a editar</label>
+      <select id="cat_select"></select>
+    </div>
+
+    <div id="cat_add_row" class="grid-6"></div>
+    <button id="cat_btn_agregar" class="btn-primary">+ Agregar</button>
+    <div id="cat_msg" class="msg"></div>
+
+    <table class="rows-table" id="cat_table">
+      <thead><tr id="cat_thead_row"></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    </div>
+
+    <div id="adm_sub_reportes" class="adm-sub hidden">
+    <h2>Generador de reportes</h2>
+    <p class="hint">
+      Arma las columnas de la Pizarra de Monitoreo, el Reporte Diario y el Ciclo 2026 con <strong>cualquier campo de la base de datos</strong>:
+      agrégalos con el selector, ponles el <strong>nombre visible</strong> (alias) que quieras, ordénalos arrastrando las filas (☰) o con las flechas,
+      y define ancho (vacío = automático) y letra. Al guardar se aplica a todos los usuarios y al PDF; las exportaciones CSV/XLSX no cambian.
+    </p>
+    <div class="rpt-barra">
+      <div class="field"><label>Informe</label>
+        <select id="rpt_select">
+          <option value="piz">Pizarra de Monitoreo</option>
+          <option value="rep">Reporte Diario de Fallas Masivas</option>
+          <option value="cic">Ciclo 2026</option>
+        </select>
+      </div>
+      <button id="rpt_btn_guardar" class="btn-primary" type="button">Guardar configuración</button>
+      <button id="rpt_btn_restablecer" class="btn-secondary" type="button">Restablecer valores de fábrica</button>
+    </div>
+    <div class="rpt-barra">
+      <div class="field rpt-campo-agregar"><label>Agregar columna de la base de datos</label>
+        <select id="rpt_add_select"></select>
+      </div>
+      <button id="rpt_btn_agregar" class="btn-secondary" type="button">+ Agregar al informe</button>
+    </div>
+    <div id="rpt_msg" class="msg"></div>
+    <table class="rows-table rpt-config" id="rpt_table">
+      <thead>
+        <tr><th></th><th>Visible</th><th>Nombre visible (alias) · columna en la BD</th><th>Ancho (px)</th><th>Tamaño</th><th>Estilo</th><th>Orden</th><th></th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="hint" id="rpt_aviso_ancho"></p>
+    <h3>Vista previa</h3>
+    <div class="db-table-scroll rpt-preview">
+      <table class="rows-table db-tabla-maestra" id="rpt_preview"><thead></thead><tbody></tbody></table>
+    </div>
+    </div>
+  </section>
+
+  <!-- ===================== REPOSITORIO (solo administrador) ===================== -->
+  <section id="tab-repositorio" class="tab-panel">
+    <h2>Repositorio de tickets</h2>
+
+    <h3>Ventanas de mantenimiento</h3>
+    <p class="hint">
+      Sube el Excel <strong>"Ficha Resumen Comité"</strong> (.xlsx). Se lee solo la primera hoja <strong>"Resumen"</strong>; si el archivo trae más hojas, los usuarios podrán descargarlo completo.
+      Cada archivo nuevo <strong>reemplaza</strong> al anterior. El indicador "Ventana de Mantenimiento" de los informes muestra la cantidad de tickets únicos (ID del Cambio).
+    </p>
+    <p class="hint" id="vent_vigente">Cargando...</p>
+    <div class="field">
+      <label>Archivo (.xlsx)</label>
+      <input type="file" id="vent_archivo" accept=".xlsx,.xls" />
+    </div>
+    <button id="vent_btn_subir" class="btn-primary" type="button" disabled>Subir ventanas de mantenimiento</button>
+    <div id="vent_msg" class="msg"></div>
+    <div id="vent_preview"></div>
+
+    <hr />
+    <h3>Tickets históricos (base de datos)</h3>
+    <p class="hint">
+      Sube un archivo <strong>.csv</strong> o <strong>.xlsx</strong> con las columnas de la base de datos:
+      Title, Tickets Vinculados, AFECTACIÓN, UNIDAD RESOLUTORIA, TIPO, ESTADO DEL TICKET, OLT, Tarjeta, PUERTO, OFICINA,
+      NOMBRE DEL EDIFICIO (SI APLICA), UBICACIÓN, FECHA DE CREACION DEL CMR, FECHA DE CREACION DEL CDA,
+      FECHA DE SOLUCION DEL CMR, FECHA DE SOLUCION DEL CDA, CANTIDAD DE CLIENTES AFECTADOS,
+      N° CLIENTES QUE REPORTARON FALLA, COMENTARIO, AVANCE DEL CMR, DESCRIPCION.
+      Nada se duplica, así que es seguro subir el mismo archivo más de una vez. Con la casilla de abajo marcada, los tickets que ya existen se reescriben con los datos del archivo.
+    </p>
+
+    <div class="field">
+      <label>Archivo</label>
+      <input type="file" id="repo_archivo" accept=".csv,.xlsx,.xls" />
+    </div>
+    <button id="repo_btn_analizar" class="btn-secondary" type="button">1. Analizar archivo</button>
+    <div id="repo_msg_analisis" class="msg"></div>
+
+    <label class="chk" style="display:flex;gap:8px;align-items:flex-start;margin:10px 0;">
+      <input type="checkbox" id="repo_reemplazar" checked style="margin-top:3px;" />
+      <span><strong>Reescribir los tickets que ya existen</strong> (mismo número de ticket): se actualizan con los datos del archivo y se sincroniza su detalle OLT/Tarjeta/Puerto
+      (se agregan los nuevos y se quitan los que ya no vienen). Conservan su historial, sus clientes cruzados, la causa y el correctivo de cada puerto, y la descripción o tickets vinculados si el archivo los trae vacíos.
+      Si la desmarcas, los tickets existentes no se tocan.</span>
+    </label>
+
+    <div id="repo_preview" class="hidden">
+      <div class="kv" style="margin: 12px 0;">
+        <div><span>Tickets detectados:</span> <strong id="repo_prev_tickets">0</strong></div>
+        <div><span>Filas de detalle (OLT/Tarjeta/Puerto):</span> <strong id="repo_prev_puertos">0</strong></div>
+        <div><span>Filas sin oficina reconocida:</span> <strong id="repo_prev_sin_oficina">0</strong></div>
+        <div><span>Filas con Ticket inválido (se omiten):</span> <strong id="repo_prev_invalidas">0</strong></div>
+        <div><span>Filas repetidas dentro del archivo (se omiten):</span> <strong id="repo_prev_duplicadas">0</strong></div>
+        <div><span>Fechas que no se pudieron leer:</span> <strong id="repo_prev_fechas">0</strong></div>
+      </div>
+      <button id="repo_btn_importar" class="btn-primary" type="button">2. Confirmar e Importar</button>
+    </div>
+
+    <div id="repo_resultado"></div>
+  </section>
+
+  <section id="tab-informe_clientes" class="tab-panel full-bleed">
+    <h2>Clientes Afectados</h2>
+    <h3>Informe 1 · Histórico de clientes afectados por falla</h3>
+    <p class="hint">Clientes de las auditorías asociadas a tickets, con los datos del ticket: número, estado, fecha de la falla, apertura, solución y cierre del CMR. Por defecto se usa la auditoría más reciente de cada puerto; marca «Incluir histórico» para ver todas las auditorías de cada falla. El Excel trae además una hoja por ticket y otra con los sectores por cantidad de clientes activos.</p>
+    <div id="cca_filtros" class="filtros-grid">
+      <div class="field"><label>Ticket CMR-COR</label><input id="cca_ticket" inputmode="numeric" placeholder="Número" /></div>
+      <div class="field"><label>Oficina</label><select id="cca_oficina"></select></div>
+      <div class="field"><label>Estado del ticket</label><select id="cca_estado"></select></div>
+      <div class="field"><label>OLT</label><input id="cca_olt" list="cca_olts" autocomplete="off" placeholder="Código de OLT" /><datalist id="cca_olts"></datalist></div>
+      <div class="field"><label>Auditoría desde</label><input id="cca_desde" type="date" /></div>
+      <div class="field"><label>Auditoría hasta</label><input id="cca_hasta" type="date" /></div>
+    </div>
+    <div class="cca-opciones">
+      <b>Tipo de afectación:</b>
+      <label class="chk"><input type="checkbox" id="cca_t_falla" checked /> Afectados (falla)</label>
+      <label class="chk"><input type="checkbox" id="cca_t_powerfail" checked /> Sin electricidad</label>
+      <label class="chk"><input type="checkbox" id="cca_t_caida_previa" /> Caída previa</label>
+      <span class="cca-sep"></span>
+      <label class="chk"><input type="checkbox" id="cca_historico" /> Incluir histórico (todas las auditorías)</label>
+      <label class="chk"><input type="checkbox" id="cca_activos" checked /> Solo contratos activos</label>
+      <label class="chk"><input type="checkbox" id="cca_sin_cruzar" /> Incluir ONUs sin cruzar</label>
+    </div>
+    <div class="cca-botones">
+      <button id="cca_buscar" class="btn-primary" type="button">Buscar</button>
+      <button id="cca_xlsx" class="btn-secondary" type="button" disabled>Descargar Excel</button>
+      <button id="cca_csv" class="btn-secondary" type="button" disabled>Descargar CSV</button>
+    </div>
+    <div id="cca_msg" class="msg"></div>
+    <div id="cca_resumen"></div>
+    <div id="cca_domino"></div>
+    <div id="cca_tabla"></div>
+
+  </section>
+
+  <section id="tab-informe_general" class="tab-panel full-bleed">
+    <h2>Reporte General de Clientes</h2>
+    <p class="hint">Clientes que conocemos de cada OLT: los que ya se cruzaron con Grafana al subir archivos de SmartOLT o al crear tickets. Entra a una oficina, elige una OLT y verás la lista de sus clientes con las veces que cada uno se ha visto afectado por una falla.</p>
+    <div id="ig_ruta" class="ig-ruta"></div>
+    <div id="ig_msg" class="msg"></div>
+    <div id="ig_contenido"></div>
+  </section>
 
   <section id="tab-informe_olt" class="tab-panel full-bleed">
     <h2>Clientes por OLT</h2>
@@ -116,23 +915,25 @@
     <div id="co_grid"></div>
   </section>
 
-  <section id="tab-informe_general" class="tab-panel full-bleed">
-    <h2>Reporte General de Clientes</h2>
-    <p class="hint">Clientes que conocemos de cada OLT: los que ya se cruzaron con Grafana al subir archivos de SmartOLT. Entra a una oficina, elige una OLT y verás la lista de sus clientes.</p>
-    <div id="ig_ruta" class="ig-ruta"></div>
-    <div id="ig_msg" class="msg"></div>
-    <div id="ig_contenido"></div>
-  </section>
-
   <section id="tab-clientes" class="tab-panel">
-    <h2>Repositorio de clientes: Grafana y SmartOLT</h2>
+    <h2>Repositorio de clientes: cruce Grafana y SmartOLT</h2>
     <p class="hint">Contiene datos personales (cédulas, teléfonos). Solo administrador y supervisor.</p>
 
     <h3>1. Carga de archivos: Grafana y SmartOLT</h3>
     <p class="hint">
       Sube en esta misma pantalla el archivo de <strong>Grafana</strong> (Detalle de Cuentas) y/o el de <strong>SmartOLT</strong> (ONUs list). Puedes subir solo uno o los dos.
       Si subes los dos, primero se actualiza la base de clientes y después las ONUs de SmartOLT se cruzan con esa base ya actualizada.
+      Al terminar, las ONUs de los tickets abiertos que no estén cubiertas por una auditoría se cruzan con la base.
     </p>
+    <h4>Sucursales con fallas activas</h4>
+    <p class="hint">Cuándo se actualizó por última vez la base de cada sucursal que tiene tickets abiertos:
+      <span class="cli-sem sem-VERDE">1 día o menos</span> <span class="cli-sem sem-AMARILLO">2 días</span> <span class="cli-sem sem-NARANJA">3 días</span> <span class="cli-sem sem-ROJO">4 o más / sin base</span></p>
+    <div id="cli_frescura"></div>
+    <div class="search-row">
+      <button id="cli_btn_cruzar_tickets" class="btn-secondary" type="button">Cruzar tickets abiertos con la base ahora</button>
+      <span class="hint">Se hace solo al terminar una carga. Cruza las ONUs de los tickets abiertos (cargadas hasta 2 días antes o después de la fecha del archivo de Grafana) y guarda en el ticket los datos del cliente.</span>
+    </div>
+    <div id="cli_msg_cruce" class="msg"></div>
 
     <div class="cli-dos-archivos">
       <div class="field">
@@ -196,59 +997,120 @@
     <div id="cli_resultado"></div>
     <div id="cli_aud_resultado"></div>
 
+    <h3>Lista de clientes para un ticket (archivo de «Clientes por OLT»)</h3>
+    <p class="hint">Sube el archivo ya cruzado y escribe el número de ticket: la lista se guarda en ese ticket sin cruzar nada contra Grafana ni SmartOLT. Cada subida queda como una lista nueva con su fecha y hora.</p>
+    <div class="row">
+      <label>N° de ticket <input type="text" id="tl_ticket" placeholder="Ej.: 12345" /></label>
+      <label>Archivo (.xlsx o .csv) <input type="file" id="tl_archivo" accept=".xlsx,.xls,.csv" /></label>
+      <button type="button" id="tl_revisar">Revisar</button>
+    </div>
+    <div id="tl_msg"></div>
+    <div id="tl_decision" style="display:none">
+      <p id="tl_comparacion"></p>
+      <label><input type="radio" name="tl_usar" value="archivo" checked /> Usar el número del archivo</label><br />
+      <label><input type="radio" name="tl_usar" value="registrado" /> Dejar el número registrado en el ticket</label>
+      <p><button type="button" id="tl_guardar">Guardar lista en el ticket</button></p>
+    </div>
+    <div id="tl_historial"></div>
+
     <h3>Cola nocturna de Grafana</h3>
     <div id="cli_cola"></div>
 
     <h3>Bases cargadas</h3>
     <div id="cli_bases"></div>
 
+    <h3>Alertas: posible falla no reportada</h3>
+    <label>Estado <select id="cli_alertas_estado"><option value="abierta">Abiertas</option><option value="cubierta">Cubiertas por un ticket</option><option value="descartada">Descartadas</option><option value="todas">Todas</option></select></label>
+    <div id="cli_alertas"></div>
+
     <h3>Auditorías cargadas</h3>
     <div id="cli_auditorias"></div>
 
-  </section>
-
-  <section id="tab-admin" class="tab-panel">
-    <div id="adm_sub_usuarios" class="adm-sub">
-    <h2>Administración de Usuarios</h2>
-
-    <div class="grid-3">
-      <div class="field">
-        <label>Correo</label>
-        <input id="adm_email" placeholder="nombre@vnet.com.ve" />
-      </div>
-      <div class="field">
-        <label>Alias</label>
-        <input id="adm_nombre" placeholder="Nombre a mostrar" />
-      </div>
-      <div class="field">
-        <label>Rol</label>
-        <select id="adm_rol">
-          <option value="supervisor">supervisor</option>
-          <option value="administrador">administrador</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Contraseña</label>
-        <input id="adm_password" type="password" placeholder="Mínimo 6 caracteres" />
-      </div>
-    </div>
-    <button id="adm_btn_crear" class="btn-primary">+ Agregar Usuario</button>
-    <div id="adm_msg" class="msg"></div>
-
-    <table class="rows-table" id="adm_table">
-      <thead>
-        <tr><th>Correo</th><th>Alias</th><th>Rol</th><th>Activo</th><th>Contraseña actual</th><th>Nueva contraseña</th><th></th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    </div>
+    <h3>3. Informe de clientes afectados</h3>
+    <p class="hint">El informe con el histórico de clientes afectados por falla (con ticket, estado y fechas) está en la sección Informes.</p>
+    <button id="cli_ir_informe" class="btn-primary" type="button">Ir al Informe de clientes afectados →</button>
   </section>
 
   </main>
   </div>
 
+  <!-- Ventanas de mantenimiento (lista) -->
+  <div id="modal_smo" class="modal-overlay hidden">
+    <div class="modal-box smo-modal">
+      <h3>Se detectaron ONUs que no están en LOS</h3>
+      <p class="hint">Solo usted sabe si estas ONUs forman parte de la falla masiva. Marque los estados que desea <strong>sumar</strong> a los clientes afectados; los que no marque se ignoran para el conteo (igual quedan anotados en la descripción).</p>
+      <div id="smo_lista"></div>
+      <div class="modal-botones">
+        <button id="smo_cancel" class="btn-secondary" type="button">Cancelar</button>
+        <button id="smo_ok" class="btn-primary" type="button">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal_mcs" class="modal-overlay hidden">
+    <div class="modal-box smo-modal mcs-modal">
+      <h3>Resultado del análisis de SmartOLT</h3>
+      <div id="mcs_resumen"></div>
+      <div id="mcs_nuevos"></div>
+      <div id="mcs_cambios"></div>
+      <div class="modal-botones">
+        <button id="mcs_cancel" class="btn-secondary" type="button">Cancelar</button>
+        <button id="mcs_ok" class="btn-primary" type="button">Guardar en el ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal_ventanas" class="modal-overlay hidden">
+    <div class="modal-box modal-log">
+      <div class="ml-cab">
+        <h3 id="mv_titulo">Ventanas de mantenimiento</h3>
+        <div class="modal-botones" style="margin:0;">
+          <a id="mv_descargar" class="btn-secondary" href="/api/ventanas/archivo" download>Descargar archivo</a>
+          <button id="mv_cerrar" class="btn-secondary" type="button">Cerrar</button>
+        </div>
+      </div>
+      <p class="hint" id="mv_sub"></p>
+      <div id="mv_lista"></div>
+    </div>
+  </div>
+
+  <!-- Confirmación con contraseña (eliminar tickets) -->
+  <div id="modal_clave" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 id="modal_clave_titulo">Confirmar eliminación</h3>
+      <p id="modal_clave_texto"></p>
+      <div class="field">
+        <label>Tu contraseña</label>
+        <input id="modal_clave_input" type="password" autocomplete="current-password" />
+      </div>
+      <div id="modal_clave_msg" class="msg"></div>
+      <div class="modal-botones">
+        <button id="modal_clave_cancelar" class="btn-secondary" type="button">Cancelar</button>
+        <button id="modal_clave_ok" class="btn-danger" type="button">Eliminar definitivamente</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Chart.js: copia local (public/vendor) y, si falta o falla, varias CDN en cadena -->
+<script src="/vendor/chart.umd.min.js"></script>
+<script>window.Chart||document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"><\/script>')</script>
+<script>window.Chart||document.write('<script src="https://unpkg.com/chart.js@4.4.4/dist/chart.umd.js"><\/script>')</script>
+<script>window.Chart||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"><\/script>')</script>
+<script src="/vendor/chartjs-plugin-datalabels.min.js"></script>
+<script>window.ChartDataLabels||document.write('<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"><\/script>')</script>
+<script>window.ChartDataLabels||document.write('<script src="https://unpkg.com/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"><\/script>')</script>
+<script>window.ChartDataLabels||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"><\/script>')</script>
+<!-- PDF: html2canvas + jsPDF (copia local en public/vendor y, si falta, varias CDN en cadena) -->
+<script src="/vendor/html2canvas.min.js"></script>
+<script>window.html2canvas||document.write('<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>')</script>
+<script>window.html2canvas||document.write('<script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"><\/script>')</script>
+<script>window.html2canvas||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>')</script>
+<script src="/vendor/jspdf.umd.min.js"></script>
+<script>window.jspdf||document.write('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>')</script>
+<script>window.jspdf||document.write('<script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"><\/script>')</script>
+<script>window.jspdf||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>')</script>
+<!-- Tabulator 6.7 (MIT): tabla tipo Excel de Consultar / Log (copia local en public/vendor) -->
 <script src="/vendor/tabulator.min.js"></script>
 <script src="app.js"></script>
 <script src="clientes.js"></script>
