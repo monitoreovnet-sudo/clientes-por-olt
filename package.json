@@ -1,16 +1,14 @@
 {
-  "name": "vnet-fallas-masivas",
+  "name": "clientes_por_olt",
   "version": "1.0.0",
   "private": true,
-  "description": "Registro y Monitoreo de Fallas Masivas CDA (Cloudflare Pages + D1)",
+  "description": "Cruce de clientes en Smart OLT y Grafana (Cloudflare Pages + D1)",
   "scripts": {
     "dev": "wrangler pages dev public --d1=DB",
     "deploy": "wrangler pages deploy public",
-    "db:create": "wrangler d1 create vnet_fallas_masivas",
-    "db:schema": "wrangler d1 execute vnet_fallas_masivas --remote --file=./schema.sql",
-    "db:seed": "wrangler d1 execute vnet_fallas_masivas --remote --file=./seed_oficinas.sql && wrangler d1 execute vnet_fallas_masivas --remote --file=./seed_olts.sql && wrangler d1 execute vnet_fallas_masivas --remote --file=./seed_catalogos.sql",
-    "db:schema:local": "wrangler d1 execute vnet_fallas_masivas --local --file=./schema.sql",
-    "db:seed:local": "wrangler d1 execute vnet_fallas_masivas --local --file=./seed_oficinas.sql && wrangler d1 execute vnet_fallas_masivas --local --file=./seed_olts.sql && wrangler d1 execute vnet_fallas_masivas --local --file=./seed_catalogos.sql"
+    "db:create": "wrangler d1 create clientes_por_olt",
+    "db:schema": "wrangler d1 execute clientes_por_olt --remote --file=./schema.sql",
+    "db:schema:local": "wrangler d1 execute clientes_por_olt --local --file=./schema.sql"
   },
   "devDependencies": {
     "wrangler": "^3.90.0"
